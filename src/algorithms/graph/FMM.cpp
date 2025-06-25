@@ -1,5 +1,5 @@
 #include "algorithms/graph/FMM.hpp"
-#include "Utils/Comparison.hpp"
+#include "utils/Comparison.hpp"
 #include <numeric>
 
 
