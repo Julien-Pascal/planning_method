@@ -6,6 +6,9 @@
 #include <string>
 #include <stdexcept>
 
+// Forward declaration pour éviter la dépendance circulaire
+class Environnement;
+
 /**
  * @brief Interface pour les stratégies d'heuristique A*
  * 
@@ -13,8 +16,17 @@
  * L'heuristique doit être admissible (jamais surestimer) pour garantir l'optimalité.
  */
 class HeuristicStrategy {
+protected:
+    const Environnement* environment; ///< Pointeur vers l'environnement (pour accéder aux méthodes de distance)
+
 public:
+    explicit HeuristicStrategy(const Environnement* env = nullptr) : environment(env) {}
     virtual ~HeuristicStrategy() = default;
+    
+    /**
+     * @brief Définit l'environnement à utiliser pour les calculs de distance
+     */
+    void set_environment(const Environnement* env) { environment = env; }
     
     /**
      * @brief Calcule l'heuristique h(n) = distance estimée vers le goal

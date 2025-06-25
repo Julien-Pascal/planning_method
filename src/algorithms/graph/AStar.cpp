@@ -5,7 +5,12 @@
 
 AStar::AStar(Environnement* environment, float cost, HeuristicStrategy* heuristic_strat)
     : GraphSearchBase(environment), edge_cost(cost), heuristic_strategy(heuristic_strat)
-{}
+{
+    // Passer l'environnement à l'heuristique si elle existe
+    if (heuristic_strategy) {
+        heuristic_strategy->set_environment(environment);
+    }
+}
 
 // Méthodes pour gérer le coût d'arête
 void AStar::set_edge_cost(float cost) {
@@ -22,6 +27,11 @@ void AStar::set_heuristic_strategy(HeuristicStrategy* heuristic_strat) {
         throw std::invalid_argument("AStar::set_heuristic_strategy: heuristic_strat cannot be nullptr.");
     }
     heuristic_strategy = heuristic_strat;
+    
+    // Passer l'environnement à la nouvelle heuristique
+    if (env) {
+        heuristic_strategy->set_environment(env);
+    }
 }
 
 // Obtient la stratégie d'heuristique

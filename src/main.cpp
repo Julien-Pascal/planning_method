@@ -1,8 +1,11 @@
 #include "Point.hpp"
 #include "Environnement.hpp"
+#include "PeriodicEnvironnement.hpp"
 #include "algorithms/graph/Dijkstra.hpp"
 #include "algorithms/graph/AStar.hpp"
 #include "algorithms/graph/FMM.hpp"
+#include "algorithms/strategies/ManhattanHeuristic.hpp"
+#include "algorithms/strategies/EuclideanHeuristic.hpp"
 #include <iostream>
 #include <exception>
 
@@ -53,9 +56,9 @@ int main()
         std::cout << "\n=== Test 4: Multiples points de départ ===" << std::endl;
         
         // Environnement avec plusieurs sources
-        Environnement env_multi = Environnement::createRandomEnvironment({25, 20}, 0.25, 789);
+        Environnement env_multi_classic = Environnement::createRandomEnvironment({25, 20}, 0.25, 789);
         
-        Dijkstra searcher_multi(&env_multi);
+        Dijkstra searcher_multi(&env_multi_classic);
         searcher_multi.add_start({2.0f, 2.0f});    // Coin gauche
         searcher_multi.add_start({22.0f, 17.0f});  // Coin droit
         searcher_multi.add_start({12.0f, 10.0f});  // Centre
@@ -319,51 +322,198 @@ int main()
         fmm.execute();
         fmm.save_U_values_image("distances_fmm_floating.png");
 
+        // ====================================================================
+        // TESTS PÉRIODIQUES COMMENCENT ICI
+        // ====================================================================
+        std::cout << "\n\n=== Tests des Environnements Périodiques ===" << std::endl;
+        
+        // ====================================================================
+        // Test 1: Comparaison Environnement classique vs périodique
+        // ====================================================================
+        std::cout << "\n--- Test 1: Comparaison classique vs périodique ---" << std::endl;
+        
+        // Environnement classique
+        std::cout << "Création environnement classique (20x15):" << std::endl;
+        Environnement env_classic = Environnement::createRandomEnvironment({20, 15}, 0.15, 42);
+        env_classic.toPNG("test_classic.png");
+        
+        // Environnement périodique équivalent
+        std::cout << "Création environnement périodique (20x15) - X périodique:" << std::endl;
+        auto env_periodic_x = PeriodicEnvironnement::createPeriodicRandomEnvironment(
+            {20, 15}, {true, false}, 0.15, 42);
+        env_periodic_x->toPNG("test_periodic_x.png");
+        
+        // Environnement périodique complet
+        std::cout << "Création environnement périodique (20x15) - X et Y périodiques:" << std::endl;
+        auto env_periodic_xy = PeriodicEnvironnement::createPeriodicRandomEnvironment(
+            {20, 15}, {true, true}, 0.15, 42);
+        env_periodic_xy->toPNG("test_periodic_xy.png");
+        
+        // ====================================================================
+        // Test 2: Dijkstra avec différentes périodicités
+        // ====================================================================
+        std::cout << "\n--- Test 2: Dijkstra avec périodicité ---" << std::endl;
+        
+        // Test sur environnement classique
+        Dijkstra dijkstra_classic(&env_classic);
+        dijkstra_classic.add_start({1.0f, 1.0f});
+        dijkstra_classic.execute();
+        dijkstra_classic.save_U_values_image("dijkstra_classic.png");
+        
+        // Test sur environnement périodique X
+        Dijkstra dijkstra_periodic_x(env_periodic_x.get());
+        dijkstra_periodic_x.add_start({1.0f, 1.0f});
+        dijkstra_periodic_x.execute();
+        dijkstra_periodic_x.save_U_values_image("dijkstra_periodic_x.png");
+        
+        // Test sur environnement périodique X+Y
+        Dijkstra dijkstra_periodic_xy(env_periodic_xy.get());
+        dijkstra_periodic_xy.add_start({1.0f, 1.0f});
+        dijkstra_periodic_xy.execute();
+        dijkstra_periodic_xy.save_U_values_image("dijkstra_periodic_xy.png");
+        
+        // ====================================================================
+        // Test 3: A* avec heuristiques périodiques
+        // ====================================================================
+        std::cout << "\n--- Test 3: A* avec heuristiques périodiques ---" << std::endl;
+        
+        // Créer un environnement de test plus grand
+        auto env_astar_periodic = PeriodicEnvironnement::createPeriodicRandomEnvironment(
+            {30, 25}, {true, false}, 0.20, 123);
+        env_astar_periodic->toPNG("astar_periodic_env.png");
+        
+        // Test A* avec Manhattan (périodique)
+        ManhattanHeuristic manhattan_periodic(1.0f);  // Nouvelle instance
+        AStar astar_manhattan_periodic(env_astar_periodic.get(), 1.0f, &manhattan_periodic);
+        astar_manhattan_periodic.add_start({2.0f, 2.0f});
+        astar_manhattan_periodic.add_end({27.0f, 22.0f});
+        astar_manhattan_periodic.execute();
+        astar_manhattan_periodic.save_U_values_image("astar_manhattan_periodic.png");
+        
+        std::cout << "A* Manhattan: " << manhattan_periodic.get_name() << std::endl;
+        std::cout << "Description: " << manhattan_periodic.get_description() << std::endl;
+        
+        // Test A* avec Euclidienne (périodique)
+        EuclideanHeuristic euclidean_periodic(1.0f);
+        AStar astar_euclidean_periodic(env_astar_periodic.get(), 1.0f, &euclidean_periodic);
+        astar_euclidean_periodic.add_start({2.0f, 2.0f});
+        astar_euclidean_periodic.add_end({27.0f, 22.0f});
+        astar_euclidean_periodic.execute();
+        astar_euclidean_periodic.save_U_values_image("astar_euclidean_periodic.png");
+        
+        std::cout << "A* Euclidienne: " << euclidean_periodic.get_name() << std::endl;
+        std::cout << "Description: " << euclidean_periodic.get_description() << std::endl;
+        
+        // ====================================================================
+        // Test 4: Test des calculs de distance périodique
+        // ====================================================================
+        std::cout << "\n--- Test 4: Calculs de distance périodique ---" << std::endl;
+        
+        // Créer un petit environnement pour tester les distances
+        auto env_distance = std::make_unique<PeriodicEnvironnement>(
+            std::vector<int>{10, 8}, std::vector<bool>{true, true});
+        
+        // Tester les distances
+        std::vector<float> point_a = {1.0f, 1.0f};
+        std::vector<float> point_b = {9.0f, 7.0f};
+        
+        float manhattan_dist = env_distance->calculate_distance(point_a, point_b, 1);
+        float euclidean_dist = env_distance->calculate_distance(point_a, point_b, 2);
+        
+        std::cout << "Distance entre (1,1) et (9,7) dans grille 10x8 périodique:" << std::endl;
+        std::cout << "  Manhattan: " << manhattan_dist << " (classique serait " << (8+6) << ")" << std::endl;
+        std::cout << "  Euclidienne: " << euclidean_dist << " (classique serait " << std::sqrt(8*8 + 6*6) << ")" << std::endl;
+        
+        // Expliquer les résultats
+        std::cout << "En périodique:" << std::endl;
+        std::cout << "  X: min(|9-1|, 10-|9-1|) = min(8, 2) = 2" << std::endl;
+        std::cout << "  Y: min(|7-1|, 8-|7-1|) = min(6, 2) = 2" << std::endl;
+        std::cout << "  Manhattan périodique: 2 + 2 = 4" << std::endl;
+        std::cout << "  Euclidienne périodique: sqrt(2² + 2²) = " << std::sqrt(8) << std::endl;
+        
+        // ====================================================================
+        // Test 5: FMM avec périodicité
+        // ====================================================================
+        std::cout << "\n--- Test 5: FMM avec périodicité ---" << std::endl;
+        
+        auto env_fmm_periodic = PeriodicEnvironnement::createPeriodicRandomEnvironment(
+            {25, 20}, {true, true}, 0.10, 456);
+        env_fmm_periodic->toPNG("fmm_periodic_env.png");
+        
+        FMM fmm_periodic(env_fmm_periodic.get(), 1.0f);
+        fmm_periodic.add_start({12.0f, 10.0f});  // Centre
+        fmm_periodic.execute();
+        fmm_periodic.save_U_values_image("fmm_periodic.png");
+        
+        std::cout << "FMM périodique - Propagation depuis le centre" << std::endl;
+        
+        // ====================================================================
+        // Test 6: Labyrinthe périodique
+        // ====================================================================
+        std::cout << "\n--- Test 6: Labyrinthe périodique ---" << std::endl;
+        
+        auto maze_periodic = PeriodicEnvironnement::createPeriodicMazeEnvironment(
+            {20, 15}, {true, false}, 789);
+        maze_periodic->toPNG("maze_periodic.png");
+        
+        Dijkstra dijkstra_maze_periodic(maze_periodic.get());
+        dijkstra_maze_periodic.add_start({0.0f, 0.0f});
+        dijkstra_maze_periodic.execute();
+        dijkstra_maze_periodic.save_U_values_image("maze_periodic_distances.png");
+        
+        // ====================================================================
+        // Test 7: Multiples sources avec périodicité
+        // ====================================================================
+        std::cout << "\n--- Test 7: Sources multiples périodiques ---" << std::endl;
+        
+        auto env_multi_periodic = PeriodicEnvironnement::createPeriodicRandomEnvironment(
+            {30, 20}, {true, true}, 0.20, 999);
+        
+        Dijkstra dijkstra_multi_periodic(env_multi_periodic.get());
+        dijkstra_multi_periodic.add_start({5.0f, 5.0f});     // Coin
+        dijkstra_multi_periodic.add_start({25.0f, 15.0f});   // Coin opposé
+        dijkstra_multi_periodic.add_start({15.0f, 10.0f});   // Centre
+        dijkstra_multi_periodic.execute();
+        dijkstra_multi_periodic.save_U_values_image("multi_sources_periodic.png");
+
         std::cout << "\n=== Fichiers générés ===" << std::endl;
-        std::cout << "Environnements:" << std::endl;
+        std::cout << "Environnements classiques:" << std::endl;
         std::cout << "- environnement_petit.png (20x15, obstacles)" << std::endl;
         std::cout << "- environnement_grand.png (50x40, obstacles)" << std::endl;
         std::cout << "- labyrinthe_petit.png (30x25, labyrinthe)" << std::endl;
         std::cout << "- environnement_astar_manhattan.png (30x25, obstacles)" << std::endl;
-        std::cout << "- environnement_astar_euclidean.png (40x30, labyrinthe)" << std::endl;
-        std::cout << "- environnement_astar_multi_end.png (35x30, obstacles)" << std::endl;
-        std::cout << "- environnement_fmm_basic.png (25x20, obstacles)" << std::endl;
-        std::cout << "- environnement_fmm_maze.png (30x25, labyrinthe)" << std::endl;
-        std::cout << "- environnement_fmm_multi.png (30x25, obstacles)" << std::endl;
-        std::cout << "- environnement_fmm_target.png (35x30, obstacles)" << std::endl;
-        std::cout << "- environnement_comparison.png (20x15, obstacles)" << std::endl;
+        std::cout << "- environnement_astar_euclidean.png (50x50, obstacles)" << std::endl;
         
-        std::cout << "\nCartes de distances (U_values) - Algorithme Dijkstra:" << std::endl;
-        std::cout << "- distances_petit.png (distances depuis (1,1))" << std::endl;
-        std::cout << "- distances_grand.png (distances depuis le centre)" << std::endl;
-        std::cout << "- distances_labyrinthe.png (distances dans le labyrinthe)" << std::endl;
-        std::cout << "- distances_multi_sources.png (3 points de départ)" << std::endl;
-        std::cout << "- distances_cout_25.png (coût d'arête = 2.5)" << std::endl;
-        std::cout << "- distances_comparison_dijkstra.png (comparaison avec FMM)" << std::endl;
+        std::cout << "\nEnvironnements périodiques:" << std::endl;
+        std::cout << "- test_classic.png (environnement classique)" << std::endl;
+        std::cout << "- test_periodic_x.png (X périodique)" << std::endl;
+        std::cout << "- test_periodic_xy.png (X et Y périodiques)" << std::endl;
+        std::cout << "- astar_periodic_env.png (environnement A* périodique)" << std::endl;
+        std::cout << "- fmm_periodic_env.png (environnement FMM périodique)" << std::endl;
+        std::cout << "- maze_periodic.png (labyrinthe périodique)" << std::endl;
         
-        std::cout << "\nCartes de distances (U_values) - Algorithme A*:" << std::endl;
-        std::cout << "- distances_astar_manhattan.png (A* avec Manhattan)" << std::endl;
-        std::cout << "- distances_astar_euclidean.png (A* avec Euclidienne)" << std::endl;
-        std::cout << "- distances_astar_multi_end.png (A* avec multiples destinations)" << std::endl;
-        
-        std::cout << "\nCartes de distances (U_values) - Algorithme FMM:" << std::endl;
+        std::cout << "\nCartes de distances:" << std::endl;
+        std::cout << "- distances_petit.png (Dijkstra depuis (1,1))" << std::endl;
+        std::cout << "- distances_grand.png (Dijkstra depuis le centre)" << std::endl;
+        std::cout << "- distances_astar_manhattan.png (A* Manhattan)" << std::endl;
+        std::cout << "- distances_astar_euclidean.png (A* Euclidienne)" << std::endl;
         std::cout << "- distances_fmm_basic.png (FMM coût = 1.0)" << std::endl;
-        std::cout << "- distances_fmm_high_cost.png (FMM coût = 3.0)" << std::endl;
-        std::cout << "- distances_fmm_maze.png (FMM dans labyrinthe)" << std::endl;
-        std::cout << "- distances_fmm_multi.png (FMM 3 sources, coût = 1.5)" << std::endl;
-        std::cout << "- distances_fmm_target.png (FMM avec arrêt anticipé)" << std::endl;
-        std::cout << "- distances_comparison_fmm.png (comparaison avec Dijkstra)" << std::endl;
-        std::cout << "- distances_fmm_fast.png (FMM coût = 0.5)" << std::endl;
         
-        std::cout << "\nCode couleur des distances: Bleu (proche) -> Vert -> Jaune -> Rouge (loin)" << std::endl;
-        std::cout << "Noir = obstacle, Gris foncé = inaccessible" << std::endl;
+        std::cout << "\nCartes de distances périodiques:" << std::endl;
+        std::cout << "- dijkstra_classic.png (Dijkstra classique)" << std::endl;
+        std::cout << "- dijkstra_periodic_x.png (Dijkstra X périodique)" << std::endl;
+        std::cout << "- dijkstra_periodic_xy.png (Dijkstra X+Y périodiques)" << std::endl;
+        std::cout << "- astar_manhattan_periodic.png (A* Manhattan périodique)" << std::endl;
+        std::cout << "- astar_euclidean_periodic.png (A* Euclidienne périodique)" << std::endl;
+        std::cout << "- fmm_periodic.png (FMM périodique)" << std::endl;
+        std::cout << "- multi_sources_periodic.png (sources multiples périodiques)" << std::endl;
         
-        std::cout << "\n=== Différences entre les algorithmes ===" << std::endl;
-        std::cout << "• Dijkstra: Distances discrètes sur graphe (sauts d'arête en arête)" << std::endl;
-        std::cout << "• A*: Dijkstra avec heuristique pour atteindre une cible rapidement" << std::endl;
-        std::cout << "• FMM: Résolution de l'équation Eikonal, propagation continue" << std::endl;
-        std::cout << "  → FMM donne des distances plus 'lisses' et physiquement réalistes" << std::endl;
-        std::cout << "  → FMM permet de modéliser des vitesses de propagation variables" << std::endl;
+        std::cout << "\n=== Observations attendues ===" << std::endl;
+        std::cout << "• Environnements périodiques: propagation qui 'wrappe' aux bords" << std::endl;
+        std::cout << "• Distances plus courtes grâce aux raccourcis périodiques" << std::endl;
+        std::cout << "• Heuristiques A*: automatiquement adaptées à la périodicité" << std::endl;
+        std::cout << "• FMM: propagation continue avec conditions aux limites périodiques" << std::endl;
+        std::cout << "• Comparaison visuelle: classique vs périodique très instructive!" << std::endl;
 
     } catch (const std::exception& e) {
         std::cerr << "Erreur: " << e.what() << std::endl;

@@ -27,6 +27,7 @@ include_directories(
 set(CORE_SOURCES
     src/Point.cpp
     src/Environnement.cpp
+    src/PeriodicEnvironnement.cpp
     src/algorithms/graph/GraphSearchBase.cpp
     src/algorithms/graph/Dijkstra.cpp
     src/algorithms/graph/AStar.cpp

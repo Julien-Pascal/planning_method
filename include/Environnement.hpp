@@ -8,14 +8,14 @@
 
 class Environnement
 {
-private:
+protected:  // Changé de private à protected pour l'héritage
     std::map<std::vector<float>, Point> pointMap;
     std::vector<int> dims;
 
 public:
     Environnement();
     Environnement(const Environnement& env);
-    ~Environnement() = default;
+    virtual ~Environnement() = default;  // Destructeur virtuel pour l'héritage
 
     // Setter pour les dimensions
     void set_dims(const std::vector<int>& dimensions);
@@ -26,10 +26,11 @@ public:
     const Point& getPoint(const std::vector<float>& coords) const;
     bool hasPoint(const std::vector<float>& coords) const;
 
-    bool is_in_bounds(const std::vector<float>& coords) const;
-
-    // Voisinage
-    std::vector<Point*> get_neigh(const Point& pt);
+    // Méthodes virtualisées pour permettre la périodicité
+    virtual bool is_in_bounds(const std::vector<float>& coords) const;
+    virtual std::vector<Point*> get_neigh(const Point& pt);
+    virtual std::vector<std::pair<Point*, float>> get_hypercube_corners_with_weights(const std::vector<float>& coords) const;
+    virtual float calculate_distance(const std::vector<float>& a, const std::vector<float>& b, int norm_type = 2) const;
 
     // Accesseurs
     std::map<std::vector<float>, Point> get_map() const { return pointMap; }
@@ -52,20 +53,10 @@ public:
     
     static Environnement createMazeEnvironment(const std::vector<int>& dimensions, 
                                              unsigned int seed = 0);
-    
 
-
-     /**
-     * @brief Obtient les 2^D points de grille entourant un point flottant
-     * @param coords Coordonnées flottantes
-     * @return Vecteur des coins de l'hypercube avec leurs poids d'interpolation
-     */
-    std::vector<std::pair<Point*, float>> get_hypercube_corners_with_weights(const std::vector<float>& coords) const;
-    
     /**
      * @brief Interpole une valeur au point flottant à partir des coins de l'hypercube
      * @param coords Coordonnées du point flottant
-     * @param corner_values Valeurs aux coins de l'hypercube
      * @return Valeur interpolée
      */
     float interpolate_from_corners(const std::vector<float>& coords) const;
@@ -77,8 +68,8 @@ public:
      */
     bool are_all_corners_frozen(const std::vector<float>& coords) const;
 
-private:
-    // Fonctions utilitaires privées
+protected:
+    // Fonctions utilitaires protégées pour les classes dérivées
     static bool isAtBorder(const std::vector<int>& coords, const std::vector<int>& dimensions);
     static bool isValidCoordinate(const std::vector<int>& coords, const std::vector<int>& dimensions);
     static std::vector<std::vector<int>> getPossibleDirections(int num_dimensions);

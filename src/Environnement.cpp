@@ -562,3 +562,32 @@ bool Environnement::are_all_corners_frozen(const std::vector<float>& coords) con
 
     return true;
 }
+
+float Environnement::calculate_distance(const std::vector<float>& a, const std::vector<float>& b, int norm_type) const {
+    if (a.size() != b.size()) {
+        throw std::invalid_argument("Les vecteurs doivent avoir la même taille");
+    }
+
+    float distance = 0.0f;
+    
+    for (size_t i = 0; i < a.size(); ++i) {
+        float diff = std::abs(a[i] - b[i]);
+        
+        if (norm_type == 1) {
+            // Norme Manhattan (L1)
+            distance += diff;
+        } else if (norm_type == 2) {
+            // Norme Euclidienne (L2)
+            distance += diff * diff;
+        } else {
+            // Norme infinie (Linfini)
+            distance = std::max(distance, diff);
+        }
+    }
+    
+    if (norm_type == 2) {
+        distance = std::sqrt(distance);
+    }
+    
+    return distance;
+}
