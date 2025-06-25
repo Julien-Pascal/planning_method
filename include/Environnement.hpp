@@ -26,6 +26,8 @@ public:
     const Point& getPoint(const std::vector<float>& coords) const;
     bool hasPoint(const std::vector<float>& coords) const;
 
+    bool is_in_bounds(const std::vector<float>& coords) const;
+
     // Voisinage
     std::vector<Point*> get_neigh(const Point& pt);
 
@@ -50,6 +52,30 @@ public:
     
     static Environnement createMazeEnvironment(const std::vector<int>& dimensions, 
                                              unsigned int seed = 0);
+    
+
+
+     /**
+     * @brief Obtient les 2^D points de grille entourant un point flottant
+     * @param coords Coordonnées flottantes
+     * @return Vecteur des coins de l'hypercube avec leurs poids d'interpolation
+     */
+    std::vector<std::pair<Point*, float>> get_hypercube_corners_with_weights(const std::vector<float>& coords) const;
+    
+    /**
+     * @brief Interpole une valeur au point flottant à partir des coins de l'hypercube
+     * @param coords Coordonnées du point flottant
+     * @param corner_values Valeurs aux coins de l'hypercube
+     * @return Valeur interpolée
+     */
+    float interpolate_from_corners(const std::vector<float>& coords) const;
+    
+    /**
+     * @brief Vérifie si tous les coins d'un hypercube ont été traités (état FROZEN)
+     * @param coords Coordonnées du point flottant
+     * @return true si tous les coins sont FROZEN
+     */
+    bool are_all_corners_frozen(const std::vector<float>& coords) const;
 
 private:
     // Fonctions utilitaires privées

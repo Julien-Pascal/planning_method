@@ -61,6 +61,13 @@ bool AStar::should_continue() const {
         return false;
     }
 
+    // Pour les points d'arrivée flottants, vérifier si leurs coins sont prêts pour interpolation
+    for (const auto& floating_end : ends) {
+        if (env->are_all_corners_frozen(floating_end)) {
+            return false; // Continuer jusqu'à ce que tous les coins soient calculés
+        }
+    }
+
     // A* s'arrête si le point avec la plus faible valeur U (qui est f(n)) est un point d'arrivée.
     const Point* next_point = front.top();
 

@@ -101,6 +101,15 @@ protected:
      */
     virtual void update_neighbor(Point* neighbor, float new_value, Point* parent);
 
+    /**
+     * @brief Calcule la valeur interpolée à un point flottant
+     * @param coords Coordonnées du point flottant
+     * @return Valeur interpolée
+     */
+    float get_interpolated_value(const std::vector<float>& coords) const;
+
+   virtual void initialize_floating_start(const std::vector<float>& coords);
+
 private:
     int processed_count; ///< Compteur de points traités
 };

@@ -121,12 +121,12 @@ int main()
 
         // --- Test A* avec Euclidean Heuristic ---
         std::cout << "\n--- Test A* avec Heuristique Euclidienne ---" << std::endl;
-        Environnement env_astar_euclidean = Environnement::createMazeEnvironment({40, 30}, 222);
+        Environnement env_astar_euclidean = Environnement::createRandomEnvironment({50, 50}, 0.0, 555);//Environnement::createMazeEnvironment({40, 30}, 222);
         env_astar_euclidean.toPNG("environnement_astar_euclidean.png");
 
         AStar astar_euclidean(&env_astar_euclidean, 1.0f, &euclidean_strat); // Heuristique Euclidienne
         astar_euclidean.add_start({0.0f, 0.0f});
-        astar_euclidean.add_end({22.0f, 16.0f}); // Point d'arrivée nécessaire
+        astar_euclidean.add_end({49.0f, 10.0f}); // Point d'arrivée nécessaire
         astar_euclidean.execute();
 
         std::cout << "A* (Euclidienne) - Nom heuristique: " << astar_euclidean.get_heuristic_strategy()->get_name() << std::endl;
@@ -272,6 +272,52 @@ int main()
 
         std::cout << "\n\n=== Nouveaux tests: Algorithme FMM (Fast Marching Method) ===" << std::endl;
         
+
+        std::cout << "\n=== Test des points de départ et d'arrivée flottants ===" << std::endl;
+    
+        // Créer un environnement
+        Environnement env = Environnement::createRandomEnvironment({20, 15}, 0.20, 42);
+        env.toPNG("environnement_floating_test.png");
+        
+        // Test avec Dijkstra
+        std::cout << "\n--- Dijkstra avec points flottants ---" << std::endl;
+        Dijkstra dijkstra(&env);
+        
+        // Point de départ flottant au lieu de (5,5)
+        dijkstra.add_start({5.3f, 5.7f});
+        
+        dijkstra.execute();
+        dijkstra.save_U_values_image("distances_dijkstra_floating.png");
+        
+        // Test avec A* 
+        std::cout << "\n--- A* avec points de départ et d'arrivée flottants ---" << std::endl;
+        ManhattanHeuristic manhattan_heuristic(1.0f);
+        AStar astar(&env, 1.0f, &manhattan_heuristic);
+        
+        // Point de départ et d'arrivée flottants
+        astar.add_start({2.2f, 1.8f});      // Au lieu de (2,2)
+        astar.add_end({17.6f, 12.4f});      // Au lieu de (18,12)
+        
+        astar.execute();
+        astar.save_U_values_image("distances_astar_floating.png");
+        
+        // Comparaison avec points entiers classiques
+        std::cout << "\n--- Comparaison avec points entiers ---" << std::endl;
+        AStar astar_grid(&env, 1.0f, &manhattan_heuristic);
+        astar_grid.add_start({2.0f, 2.0f});          // Point entier proche
+        astar_grid.add_end({18.0f, 12.0f});          // Point entier proche
+        
+        astar_grid.execute();
+        astar_grid.save_U_values_image("distances_astar_grid.png");
+        
+        // Test avec FMM
+        std::cout << "\n--- FMM avec points flottants ---" << std::endl;
+        FMM fmm(&env);
+        
+        fmm.add_start({10.5f, 7.5f});       // Centre flottant
+        
+        fmm.execute();
+        fmm.save_U_values_image("distances_fmm_floating.png");
 
         std::cout << "\n=== Fichiers générés ===" << std::endl;
         std::cout << "Environnements:" << std::endl;

@@ -55,6 +55,14 @@ bool Environnement::hasPoint(const std::vector<float>& coords) const {
     return pointMap.count(coords) > 0;
 }
 
+bool Environnement::is_in_bounds(const std::vector<float>& coords) const {
+    for (size_t i = 0; i<coords.size(); i++)
+    {
+        if (coords[i]<0 || coords[i]>=dims[i]) return false;
+    }
+    return true;
+}
+
 std::vector<Point*> Environnement::get_neigh(const Point& pt)
 {
     std::vector<Point*> neigh;
@@ -458,4 +466,99 @@ Environnement Environnement::createMazeEnvironment(const std::vector<int>& dimen
     std::cout << ")" << std::endl;
     
     return env;
+}
+
+
+std::vector<std::pair<Point*, float>> Environnement::get_hypercube_corners_with_weights(
+    const std::vector<float>& query_coords) const {
+
+    std::vector<std::pair<Point*, float>> corners_with_points_and_weights; // Changement ici
+
+    if (!is_in_bounds(query_coords)) {
+        return corners_with_points_and_weights;
+    }
+
+    const size_t num_dimensions = dims.size();
+    std::vector<int> base_coords_int(num_dimensions);
+    std::vector<float> fractional_parts(num_dimensions);
+
+    for (size_t i = 0; i < num_dimensions; ++i) {
+        base_coords_int[i] = static_cast<int>(std::floor(query_coords[i]));
+        fractional_parts[i] = query_coords[i] - base_coords_int[i];
+
+        if (base_coords_int[i] >= dims[i] - 1) {
+            base_coords_int[i] = dims[i] - 2;
+            fractional_parts[i] = 1.0f;
+        }
+        if (base_coords_int[i] < 0) {
+            base_coords_int[i] = 0;
+            fractional_parts[i] = 0.0f;
+        }
+    }
+
+    int num_corners = 1 << num_dimensions;
+
+    for (int i = 0; i < num_corners; ++i) {
+        std::vector<float> corner_coords(num_dimensions);
+        float current_weight = 1.0f;
+
+        for (size_t dim_idx = 0; dim_idx < num_dimensions; ++dim_idx) {
+            if ((i >> dim_idx) & 1) {
+                corner_coords[dim_idx] = static_cast<float>(base_coords_int[dim_idx] + 1);
+                current_weight *= fractional_parts[dim_idx];
+            } else {
+                corner_coords[dim_idx] = static_cast<float>(base_coords_int[dim_idx]);
+                current_weight *= (1.0f - fractional_parts[dim_idx]);
+            }
+        }
+
+        // Au lieu de retourner les coordonnées, nous obtenons le pointeur vers le Point.
+        // Puisque Environnement::getPoint retourne const Point&, nous pouvons prendre son adresse.
+        if (hasPoint(corner_coords)) {
+            corners_with_points_and_weights.emplace_back(const_cast<Point*>(&getPoint(corner_coords)), current_weight);
+        }
+    }
+
+    return corners_with_points_and_weights;
+}
+
+float Environnement::interpolate_from_corners(const std::vector<float>& coords) const { // 'corner_values' n'est plus nécessaire
+
+    // Appel de la version modifiée qui retourne des Point*
+    auto corners_with_points_and_weights = get_hypercube_corners_with_weights(coords);
+
+    if (corners_with_points_and_weights.empty()) {
+        return std::numeric_limits<float>::infinity();
+    }
+
+    float interpolated_value = 0.0f;
+    float total_weight = 0.0f;
+
+    for (const auto& entry : corners_with_points_and_weights) {
+        const Point* corner_point = entry.first; // Pointeur vers le Point
+        float weight = entry.second;             // Poids d'interpolation
+
+        // Accès direct à la valeur du point
+        interpolated_value += weight * corner_point->get_value();
+        total_weight += weight;
+    }
+
+    return (total_weight > 0) ? interpolated_value / total_weight : std::numeric_limits<float>::infinity();
+}
+
+bool Environnement::are_all_corners_frozen(const std::vector<float>& coords) const {
+    auto corners_with_points_and_weights = get_hypercube_corners_with_weights(coords);
+
+    if (corners_with_points_and_weights.empty()) {
+        return false;
+    }
+
+    for (const auto& entry : corners_with_points_and_weights) {
+        const Point* corner_point = entry.first;
+        if (corner_point->get_state() != FROZEN) { // Accès direct à l'état
+            return false;
+        }
+    }
+
+    return true;
 }

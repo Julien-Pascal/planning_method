@@ -78,7 +78,27 @@ void GraphSearchBase::initialize_starts()
                 front.push(&start_point);
             }
         }
+        else if(env->is_in_bounds(start_coords))
+        {
+            initialize_floating_start(start_coords);
+        }
     }
+}
+
+void GraphSearchBase::initialize_floating_start(const std::vector<float>& coords)
+{
+    auto corners = env->get_hypercube_corners_with_weights(coords);
+
+    for (auto corner : corners)
+    {
+        if(!corner.first->get_obs())
+        {
+            corner.first->set_value(corner.second);
+            corner.first->set_state(FRONT);
+            front.push(corner.first);
+        }
+    }
+
 }
 
 bool GraphSearchBase::should_continue() const {
